@@ -1,6 +1,5 @@
 package PokemonUniverse;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class Solution {
@@ -12,16 +11,20 @@ public class Solution {
      */
     int pokemonNum = 0;
     int pokemonCitiesNum = 0;
-    String [] pokemons = null;
-    String [] pokemonCities = null;
+    ArrayList<String> pokemons = null;
+    ArrayList<String> pokemonCities = null;
 
     public boolean DEBUG = false;
 
     public Solution(int pokemonNum, int pokemonCitiesNum, String pokemonNamesStr, String pokemonCitiesStr) {
         this.pokemonNum = pokemonNum;
         this.pokemonCitiesNum = pokemonCitiesNum;
-        this.pokemons = pokemonNamesStr.split("\\s+");
-        this.pokemonCities = pokemonCitiesStr.split("\\s+");
+
+        String [] pokemons = pokemonNamesStr.split("\\s+");
+        String [] pokemonCities = pokemonCitiesStr.split("\\s+");
+
+        this.pokemons = new ArrayList<>( Arrays.asList(pokemons) );
+        this.pokemonCities = new ArrayList<>( Arrays.asList(pokemonCities) );
     }
 
     private void debug(String str) {
@@ -35,8 +38,8 @@ public class Solution {
         this.debug("Pokemon order: " + String.join(" ", this.pokemons));
 
         int i = 0;
-        ArrayList<String> moves = new ArrayList<String>();
-        ArrayList<String> pokemonsList = new ArrayList<String>(Arrays.asList(this.pokemons));
+        ArrayList<String> moves = new ArrayList<>();
+        ArrayList<String> pokemonsList = (ArrayList<String>) this.pokemons.clone();
 
         while(pokemonsList.size() > 0) {
             int cityIndex = i++ % pokemonCitiesNum;
@@ -61,58 +64,68 @@ public class Solution {
         this.debug("Moves: " + moves.size() );
 
         return moves.toArray(new String[0]);
+        //return cities;
     }
+/*
+P Q R
+P R Q
 
-    public ArrayList<String> combination(ArrayList<String> inputList, ArrayList<String> combinationHashSet ) {
+Q P R
+Q R P
+
+R P Q
+R Q P
+ */
+    public ArrayList<ArrayList<String>> permutation(ArrayList<String> inputList ) {
+
+        if( inputList.size() == 1 ){
+            ArrayList<ArrayList<String>> ret = new ArrayList<ArrayList<String>>();
+            ret.add(inputList);
+            return ret;
+        }
+
+        ArrayList<ArrayList<String>> combinationList = new ArrayList<ArrayList<String>>();
 
         for( String item : inputList ) {
             ArrayList<String> inputListClone = (ArrayList<String>)inputList.clone();
             inputListClone.remove( item );
 
             //inputListClone size 3, 2, 1, 0
-            ArrayList<String> combbinationList = this.combination( inputListClone, combinationHashSet );
-        }
+            ArrayList<ArrayList<String>> subPermutatedList = this.permutation( inputListClone );
+            Iterator<ArrayList<String>> subPermutatedListIter = subPermutatedList.iterator();
 
-        return inputList;
-    }
-
-    /*
-    public ArrayList<String> combination(ArrayList<String> inputList, ArrayList<String> combinationHashSet ) {
-
-        if( inputList.size() == 0 ) {
-            return combinationHashSet;
-        }
-
-        for( int i=0; i<inputList.size(); i++ ) {
-
-            ArrayList<String> arrayListClone = (ArrayList<String>) inputList.clone();
-            arrayListClone.remove(i);
-
-            combinationHashSet.add( inputList.get(i) );
-
-            Iterator<String> combinationIter = combinationHashSet.iterator();
-            ArrayList<String> combinationHashSetNew = new ArrayList<String>();
-
-
-            this.combination(arrayListClone, combinationHashSet);
-
-
-            while( combinationIter.hasNext() ) {
-                //combinationNew.add();
-                combinationIter.next();
-                for( String e : arrayListClone ) {
-                    ;
-                }
-
+            while ( subPermutatedListIter.hasNext() ) {
+                ArrayList<String> combItem = subPermutatedListIter.next();
+                combItem.add(0, item);
+                //combinationList.add( (new StringBuilder(item)).append(combItem).toString() );
+                combinationList.add( combItem );
             }
         }
 
-        return combinationHashSet;
+        return combinationList;
     }
-     */
+
+    public String[] getMovesPermutatedCities() {
+        String [] bestMoves = null;
+        ArrayList<String> bestRoute = new ArrayList<>();
+
+        ArrayList<ArrayList<String>> permutatedCitiesList = this.permutation( (ArrayList<String>)this.pokemonCities.clone() );
+        this.debug( permutatedCitiesList.toString() );
+
+        for(ArrayList<String> cities : permutatedCitiesList) {
+            String[] moves = this.getMovesByCities( cities.toArray(new String[cities.size()]) );
+
+            if( bestMoves == null || bestMoves.length > moves.length ) {
+                bestMoves = moves;
+                bestRoute = cities;
+            }
+        }
+
+        return bestRoute.toArray( new String[bestRoute.size()] );
+    }
 
     public String[] getMoves() {
-        String[] cities = this.pokemonCities;
+        String[] cities = this.pokemonCities.toArray( new String[this.pokemonCities.size()] );
         String [] bestMoves = null;
 
         for(int i=0; i<this.pokemonCitiesNum; i++) {
@@ -122,16 +135,11 @@ public class Solution {
                 bestMoves = moves;
             }
 
-            //combination
-            List<String> list = new ArrayList<String>( Arrays.asList(cities) );
+            //round robin
+            List<String> list = new ArrayList<>( Arrays.asList(cities) );
             list.add( list.remove(0) );
             cities = list.toArray(new String[0]);
         }
-
-
-        ArrayList<String> combinationArrayList = new ArrayList<String>();
-        ArrayList<String> cityArrayList = new ArrayList<String>( Arrays.asList(cities) );
-        this.combination( cityArrayList, combinationArrayList );
 
         return bestMoves;
     }
@@ -145,8 +153,8 @@ public class Solution {
         String pokemonCitiesStr = scanner.nextLine();//"charmander pikachu";
 
         Solution solution = new Solution(pokemonNumX, pokemonCityNumY, pokemonNamesStr, pokemonCitiesStr);
-        solution.DEBUG = true;
-        String [] output = solution.getMoves();
+        solution.DEBUG = false;
+        String [] output = solution.getMovesPermutatedCities();
 
         System.out.println(String.join(" ", output));
     }
@@ -154,23 +162,23 @@ public class Solution {
     public static void main_test(String [] args) {
         Scanner scanner = new Scanner(System.in);
 
-        int pokemonNumX = 6;
+        int pokemonNumX = 4;
         int pokemonCityNumY = 3;
-        String pokemonNamesStr = "P Q P Q R P";
-        String pokemonCitiesStr = "P Q R";
+        String pokemonNamesStr = "charmander pikachu snorlax pikachu";//"P Q P Q R P";
+        String pokemonCitiesStr = "charmander pikachu snorlax";//"P Q R";
 
         Solution solution = new Solution(pokemonNumX, pokemonCityNumY, pokemonNamesStr, pokemonCitiesStr);
         solution.DEBUG = true;
-        String [] output = solution.getMoves();
+        String [] output = solution.getMovesPermutatedCities();
 
         System.out.println(String.join(" ", output));
 
 
-        //solution.combination();
+        //solution.permutation();
     }
 
     public static void main(String [] args) {
-        main_test(args);
+        main_submit(args);
     }
 
 }
